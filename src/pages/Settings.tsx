@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../lib/DevCoreAuthContext';
 import { authService } from '../lib/authService';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Shield, Lock, User, Terminal, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Shield, Lock, User, CheckCircle2, AlertCircle, Loader2, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
@@ -13,6 +13,17 @@ export const Settings: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [isBusy, setIsBusy] = useState(false);
   const [status, setStatus] = useState<{type: 'success' | 'error', message: string} | null>(null);
+  const [isLightMode, setIsLightMode] = useState(() => document.body.classList.contains('light'));
+
+  const toggleTheme = () => {
+    const newMode = !isLightMode;
+    setIsLightMode(newMode);
+    if (newMode) {
+      document.body.classList.add('light');
+    } else {
+      document.body.classList.remove('light');
+    }
+  };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +34,7 @@ export const Settings: React.FC = () => {
 
     try {
       await authService.updatePassword(newPassword);
-      setStatus({ type: 'success', message: 'Security Token (Password) updated successfully.' });
+      setStatus({ type: 'success', message: 'Password updated successfully across the mesh.' });
       setNewPassword('');
     } catch (err: any) {
       setStatus({ type: 'error', message: err.message || 'Handshake failed during password update.' });
@@ -33,7 +44,7 @@ export const Settings: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-bg-deep text-text-main flex flex-col font-sans">
+    <div className="min-h-screen bg-bg-deep text-text-main flex flex-col font-sans transition-colors duration-200">
       {/* Header */}
       <header className="h-[64px] border-b border-border-dim flex items-center justify-between px-8 bg-bg-side/50 backdrop-blur-md sticky top-0 z-20">
         <div className="flex items-center gap-6">
@@ -48,12 +59,21 @@ export const Settings: React.FC = () => {
           </div>
         </div>
         
-        <button 
-          onClick={logout}
-          className="px-4 py-2 border border-red-500/20 text-red-500 bg-red-500/5 rounded-lg hover:bg-red-500/10 transition-all text-[11px] font-mono uppercase tracking-widest"
-        >
-          Logout
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={toggleTheme}
+            className="p-2 text-text-dim hover:text-text-main hover:bg-bg-card rounded-lg transition-all"
+            title="Toggle Theme"
+          >
+            {isLightMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          </button>
+          <button 
+            onClick={logout}
+            className="px-4 py-2 border border-red-500/20 text-red-500 bg-red-500/5 rounded-lg hover:bg-red-500/10 transition-all text-[11px] font-mono uppercase tracking-widest"
+          >
+            Logout
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 max-w-2xl w-full mx-auto p-12 space-y-12 animate-in fade-in slide-in-from-bottom-5 duration-500">
@@ -73,9 +93,9 @@ export const Settings: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
                {[
                  { label: 'Identity', value: user?.display_name || 'Yusef' },
-                 { label: 'Team Scope', value: (user?.team || 'Zerobyte') + ' / Admin' },
-                 { label: 'API Key', value: 'b48f90...8a3b' },
-                 { label: 'Status', value: 'API v1.2 Active' }
+                 { label: 'Team', value: (user?.team || 'DevCore') },
+                 { label: 'API Identity', value: 'Authorized Node' },
+                 { label: 'Status', value: 'Encrypted Session' }
                ].map((stat, idx) => (
                  <div key={idx} className="bg-bg-deep p-4 rounded border border-border-dim">
                     <p className="text-[10px] font-mono text-text-dim uppercase tracking-widest mb-1">{stat.label}</p>
@@ -93,8 +113,8 @@ export const Settings: React.FC = () => {
                 <Shield className="w-5 h-5 text-accent" />
              </div>
              <div>
-                <h3 className="text-lg font-bold">Security Protocols</h3>
-                <p className="text-xs text-text-dim font-mono uppercase tracking-widest">Update Mesh Token</p>
+                <h3 className="text-lg font-bold">Change Password</h3>
+                <p className="text-xs text-text-dim font-mono uppercase tracking-widest">Update Your Mesh Access Token</p>
              </div>
            </div>
 
@@ -118,7 +138,7 @@ export const Settings: React.FC = () => {
                  </AnimatePresence>
 
                  <div className="space-y-3">
-                    <label className="text-[11px] font-mono text-text-dim uppercase tracking-widest px-1">New Access Token</label>
+                    <label className="text-[11px] font-mono text-text-dim uppercase tracking-widest px-1">New Password</label>
                     <div className="relative group">
                       <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-text-dim group-focus-within:text-accent transition-colors">
                         <Lock className="w-4 h-4" />
@@ -128,8 +148,8 @@ export const Settings: React.FC = () => {
                         required
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full bg-bg-deep border border-border-dim rounded-lg py-3.5 pl-12 pr-4 text-text-main placeholder:text-zinc-800 focus:outline-none focus:border-accent/40 transition-all font-mono text-sm"
+                        placeholder="Enter new mesh password"
+                        className="w-full bg-bg-deep border border-border-dim rounded-lg py-3.5 pl-12 pr-4 text-text-main placeholder:text-text-dim/50 focus:outline-none focus:border-accent/40 transition-all font-mono text-sm"
                       />
                     </div>
                  </div>
@@ -142,10 +162,10 @@ export const Settings: React.FC = () => {
                     {isBusy ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span className="font-mono text-[11px] uppercase tracking-tighter">Syncing...</span>
+                        <span className="font-mono text-[11px] uppercase tracking-tighter">Syncing Credentials...</span>
                       </>
                     ) : (
-                      <span className="uppercase tracking-widest text-xs font-bold font-mono">Commit Token Update</span>
+                      <span className="uppercase tracking-widest text-xs font-bold font-mono">Confirm Password Change</span>
                     )}
                  </button>
               </form>
@@ -153,7 +173,7 @@ export const Settings: React.FC = () => {
         </section>
 
         <section className="pt-12 border-t border-border-dim text-center">
-            <p className="text-[10px] font-mono text-zinc-800 uppercase tracking-widest">Geometric Control Layer v1.0.1</p>
+            <p className="text-[10px] font-mono text-zinc-800 uppercase tracking-widest transition-colors duration-200">Geometric Control Layer v1.0.1</p>
         </section>
       </main>
     </div>

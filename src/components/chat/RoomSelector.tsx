@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChatRoom } from '../../types';
-import { Hash, Plus, LogOut, Settings, Users } from 'lucide-react';
+import { Hash, Plus, LogOut, Settings, Users, Sun, Moon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../lib/DevCoreAuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -22,14 +22,31 @@ export const RoomSelector: React.FC<RoomSelectorProps> = ({
 }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [isLightMode, setIsLightMode] = useState(() => document.body.classList.contains('light'));
+
+  const toggleTheme = () => {
+    const newMode = !isLightMode;
+    setIsLightMode(newMode);
+    if (newMode) {
+      document.body.classList.add('light');
+    } else {
+      document.body.classList.remove('light');
+    }
+  };
 
   return (
-    <div className="w-[260px] bg-bg-side border-r border-border-dim flex flex-col h-full overflow-hidden shrink-0">
-      <div className="p-[24px] border-b border-border-dim">
+    <div className="w-[260px] bg-bg-side border-r border-border-dim flex flex-col h-full overflow-hidden shrink-0 transition-colors duration-200">
+      <div className="p-[24px] border-b border-border-dim flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-accent rounded-md flex items-center justify-center font-bold text-black text-lg transition-transform hover:scale-105" />
           <h1 className="font-bold text-text-main text-lg tracking-tight">DevCore</h1>
         </div>
+        <button 
+          onClick={toggleTheme}
+          className="p-1.5 text-text-dim hover:text-text-main hover:bg-bg-card rounded-md transition-all"
+        >
+          {isLightMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar">

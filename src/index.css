@@ -16,7 +16,17 @@
 
 @layer base {
   body {
-    @apply bg-bg-deep text-text-main antialiased;
+    @apply bg-bg-deep text-text-main antialiased transition-colors duration-200;
+  }
+
+  body.light {
+    --color-bg-deep: #F8FAFC;
+    --color-bg-side: #FFFFFF;
+    --color-bg-card: #F1F5F9;
+    --color-text-main: #0F172A;
+    --color-text-dim: #64748B;
+    --color-accent: #0EA5E9;
+    --color-border-dim: #E2E8F0;
   }
 }
 
@@ -35,7 +45,7 @@
     @apply font-sans;
   }
   .markdown-body p { @apply mb-2 last:mb-0; }
-  .markdown-body code { @apply bg-black/40 px-1 rounded text-accent font-mono text-[0.9em]; }
+  .markdown-body code { @apply bg-black/5 px-1 rounded text-accent font-mono text-[0.9em]; }
   .markdown-body pre { @apply bg-black p-4 rounded-lg my-4 overflow-x-auto border border-zinc-800; }
   .markdown-body pre code { @apply bg-transparent p-0 text-accent/80; }
   .markdown-body ul, .markdown-body ol { @apply ml-6 my-2; }
