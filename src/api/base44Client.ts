@@ -11,10 +11,16 @@ class EntityClient<T> {
   }
 
   private async request(path: string, options: RequestInit = {}) {
+    // Retrieve session identity for backend permission validation
+    const session = localStorage.getItem('devcore_session');
+    const user = session ? JSON.parse(session) : null;
+
     const response = await fetch(`${BASE_URL}${path}`, {
       ...options,
       headers: {
         'api_key': API_KEY,
+        'x-app-id': '69df8f2c2445b6f72fd8bbea', // Required for entity scoping
+        'user_email': user?.email || '',         // Identifies the user for backend rules
         'Content-Type': 'application/json',
         ...options.headers,
       },
@@ -74,21 +80,31 @@ class EntityClient<T> {
     let lastCheck = new Date().toISOString();
     const interval = setInterval(async () => {
       try {
-        // Find records created since last check
+        // Find records created OR updated since last check
         const q = JSON.stringify({
-          created_date: { '$gt': lastCheck }
+          '$or': [
+            { created_date: { '$gt': lastCheck } },
+            { updated_date: { '$gt': lastCheck } }
+          ]
         });
-        const newRecords = await this.request(`/entities/${this.entityName}?q=${encodeURIComponent(q)}&sort_by=created_date`);
+        const events = await this.request(`/entities/${this.entityName}?q=${encodeURIComponent(q)}&sort_by=updated_date`);
         
-        if (newRecords && newRecords.length > 0) {
-          lastCheck = newRecords[newRecords.length - 1].created_date;
-          newRecords.forEach((record: T & { id: string }) => {
+        if (events && events.length > 0) {
+          // Identify if it's a create or update based on timestamps
+          events.forEach((record: T & { id: string, created_date: string, updated_date: string }) => {
+            const type = record.created_date === record.updated_date ? 'create' : 'update';
             callback({
-              type: 'create',
+              type,
               id: record.id,
               data: record,
             });
           });
+          // Update lastCheck to the latest timestamp found
+          const latest = events.reduce((max: string, r: any) => {
+             const higher = r.updated_date > r.created_date ? r.updated_date : r.created_date;
+             return higher > max ? higher : max;
+          }, lastCheck);
+          lastCheck = latest;
         }
       } catch (err) {
         console.error(`Subscription error for ${this.entityName}:`, err);

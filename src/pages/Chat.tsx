@@ -25,14 +25,21 @@ export const Chat: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load Rooms
+  // Load Rooms & Subscribe
   useEffect(() => {
+    if (!user) return;
+
     const fetchRooms = async () => {
       try {
         const results = await base44.entities.ChatRoom.list();
-        setRooms(results);
-        if (results.length > 0 && !activeRoomId) {
-          setActiveRoomId(results[0].id || null);
+        // Defensive filtering: Only show rooms where the current user is an authorized member
+        const authorizedRooms = results.filter(r => 
+          Array.isArray(r.members) && r.members.includes(user.display_name)
+        );
+        setRooms(authorizedRooms);
+        
+        if (authorizedRooms.length > 0 && !activeRoomId) {
+          setActiveRoomId(authorizedRooms[0].id || null);
         }
       } catch (err) {
         console.error('Failed to fetch rooms:', err);
@@ -40,8 +47,26 @@ export const Chat: React.FC = () => {
         setIsRoomsLoading(false);
       }
     };
+
     fetchRooms();
-  }, [activeRoomId]);
+
+    // Subscribe to room changes to keep the list fresh across the mesh
+    const unsubscribe = base44.entities.ChatRoom.subscribe(() => {
+      fetchRooms(); // Re-fetch and re-filter when any channel record changes
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Ensure activeRoomId is always authorized
+  useEffect(() => {
+    if (activeRoomId && rooms.length > 0) {
+      const isAuthorized = rooms.some(r => r.id === activeRoomId);
+      if (!isAuthorized) {
+        setActiveRoomId(rooms[0]?.id || null);
+      }
+    }
+  }, [rooms, activeRoomId]);
 
   // Load Messages & Subscribe
   useEffect(() => {
@@ -141,11 +166,17 @@ export const Chat: React.FC = () => {
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-bg-deep relative">
-        <header className="h-[64px] border-b border-border-dim flex items-center justify-between px-6 bg-bg-deep/50 backdrop-blur-md z-20">
-          <div className="flex items-center gap-3">
+        <header className="h-[64px] border-b border-border-dim flex items-center justify-between px-6 bg-bg-side/50 backdrop-blur-md z-20">
+          <div className="flex items-center gap-4">
             <h2 className="text-[14px] font-bold text-text-main tracking-tight flex items-center gap-2">
               <span className="text-accent font-mono">#</span> {selectedRoom?.name || 'engineering-general'}
             </h2>
+            {selectedRoom?.invite_code && (
+              <div className="flex items-center gap-2 bg-bg-card border border-border-dim px-2 py-1 rounded">
+                <span className="text-[9px] font-mono text-text-dim uppercase tracking-widest">Invite Code</span>
+                <span className="text-xs font-mono font-bold text-accent">{selectedRoom.invite_code}</span>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-4">
              <div className="bg-accent/10 text-accent font-mono text-[10px] px-2 py-1 rounded border border-accent/20">
@@ -219,7 +250,13 @@ export const Chat: React.FC = () => {
         </div>
 
         <div className="mt-auto space-y-4">
-           <h2 className="text-[11px] font-mono text-text-dim uppercase tracking-[0.15em]">Configuration</h2>
+           <h2 className="text-[11px] font-mono text-text-dim uppercase tracking-[0.15em]">Channel Assets</h2>
+           {selectedRoom?.invite_code && (
+              <div className="bg-bg-deep p-3 rounded-lg border border-border-dim">
+                <div className="text-[10px] text-text-dim mb-1 italic">Mesh Security Token</div>
+                <div className="text-[16px] font-mono font-bold text-accent tracking-widest">{selectedRoom.invite_code}</div>
+              </div>
+           )}
            <div className="bg-bg-deep p-3 rounded-lg border border-border-dim">
               <div className="text-[10px] text-text-dim mb-1">API Key</div>
               <div className="text-[13px] font-mono font-medium text-text-main truncate">b48f90...8a3b</div>
